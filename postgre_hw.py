@@ -22,14 +22,17 @@ def create_tables(cur): # создает таблицы
                 CREATE TABLE IF NOT EXISTS
                 Course(
                 course_id SERIAL PRIMARY KEY,
-                name VARCHAR(100) NOT NULL);
+                name VARCHAR(100) NOT NULL
+                );
                 ''')
 
     cur.execute('''
                 CREATE TABLE IF NOT EXISTS
                 Courses_Students(
-                stud_id INTEGER PRIMARY KEY REFERENCES Student(student_id),
-                course_id INTEGER);
+                id INTEGER PRIMARY KEY,
+                stud_id INTEGER REFERENCES Student(student_id),
+                course_id INTEGER REFERENCES Course(course_id)
+                );
                 ''')
 
 
@@ -57,23 +60,23 @@ def add_students(course_id, name): # создает студентов и
        '''INSERT INTO Course (course_id, name) VALUES (%s, %s);
        ''', (course_id, name))
 
-def get_course_students(cur, course_id):# (course_id): # возвращает студентов определенного курса
-    ''' # (course_id): # возвращает студентов определенного курса'''
+def get_course_students(cur, course_id):
+    ''' (course_id): # возвращает студентов определенного курса'''
     cur.execute('''
-        SELECT * FROM Courses_Students WHERE course_id=%s;
+        SELECT stud_id FROM Courses_Students WHERE course_id=%s;
         ''', (course_id,))
     for stud_id in cur.fetchone():
-        print(f'На курс {course_id} ходит судент', stud_id)
+        print(f'На курс {course_id} ходит судент', stud_id)  #ТУТ КАКОЙ ТО БАГ В ВЫВОДЕ
 
-def connect_studs_to_courses(cur, stud_id, course_id):
+def connect_studs_to_courses(cur, id, stud_id, course_id):
     cur.execute(
-    '''INSERT INTO Courses_Students (stud_id, course_id) VALUES (%s, %s);
-            ''', (stud_id, course_id))
+    '''INSERT INTO Courses_Students (id, stud_id, course_id) VALUES (%s, %s, %s);
+            ''', (id, stud_id, course_id))
     cur.execute('''
                 SELECT * FROM Courses_Students;
                 ''')
-    for connections in cur.fetchall():
-        print('Our connections ==> ', connections)
+    # for connections in cur.fetchall():
+    #     print('Our connections ==> ', connections)
 
 def get_student(cur, student_id): # возвращает студента
     cur.execute('''
@@ -102,8 +105,10 @@ with pg.connect(database='yakovtsevdb',
     add_student(cur, 'Firststudent', 5.78, '01.01.2020')
     add_student(cur, 'Secondstudent', 9.78, None)
 
-    # get_student(cur, 1)
+    get_student(cur, 2)
 
     get_courses_list(cur)
-    connect_studs_to_courses(cur, 2, 1)
+    connect_studs_to_courses(cur, 1, 2, 1)
+    connect_studs_to_courses(cur, 2, 1, 2)
     get_course_students(cur, 1)
+    get_course_students(cur, 2)
