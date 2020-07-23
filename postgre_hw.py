@@ -29,7 +29,7 @@ def create_tables(cur): # создает таблицы
     cur.execute('''
                 CREATE TABLE IF NOT EXISTS
                 Courses_Students(
-                id INTEGER PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 stud_id INTEGER REFERENCES Student(student_id),
                 course_id INTEGER REFERENCES Course(course_id)
                 );
@@ -44,28 +44,33 @@ def add_student(cur, students_list):
             '''INSERT INTO Student (name, gpa, birthdate) VALUES (%s, %s, %s)
             RETURNING student_id;
             ''', (student['name'], student['gpa'], student['birthdate']))
-        # return cur.fetchone()[0]
 
-def add_courses(cur, course_list): # добавляет новый курс
+def add_courses(cur, course_list): # добавляет курсы из списка в базу
     for course in course_list:
         cur.execute(
         '''INSERT INTO Course (name) VALUES (%s);
         ''', (course['name'],))
 
-def get_courses_list(cur): # возвращает студента
+def get_courses_list(cur): # возвращает список курсов
     cur.execute('''
             SELECT * FROM Course;
             ''')
     for course in cur.fetchall():
         print('Our courses ==> ', course)
 
-# def add_students(cur, students_list, course_id):
-#     ''' # создает студентов и # записывает их на курс'''
-#     add_student(cur, students_list)
-#     student_id = add_student(cur, students_list)
-#     cur.execute(
-#        '''INSERT INTO Courses_Students (stud_id) VALUES (%s);
-#        ''', (student_id,))
+def add_students(cur, students_list, course_id):
+    ''' # создает студентов и # записывает их на курс'''
+    for student in students_list:
+        cur.execute(
+            '''INSERT INTO Student (name, gpa, birthdate) VALUES (%s, %s, %s)
+            RETURNING student_id;
+            ''', (student['name'], student['gpa'], student['birthdate']))
+        student_id = cur.fetchall()[0][0]
+
+        cur.execute(
+            '''INSERT INTO Courses_Students (stud_id, course_id) VALUES (%s, %s);
+            ''', (student_id, course_id))
+
 
 def get_course_students(cur, course_id):
     ''' (course_id): # возвращает студентов определенного курса'''
@@ -75,13 +80,6 @@ def get_course_students(cur, course_id):
     for stud_id in cur.fetchone():
         print(f'На курс {course_id} ходит судент', stud_id)
 
-def connect_studs_to_courses(cur, id, stud_id, course_id):
-    cur.execute(
-    '''INSERT INTO Courses_Students (id, stud_id, course_id) VALUES (%s, %s, %s);
-            ''', (id, stud_id, course_id))
-    cur.execute('''
-                SELECT * FROM Courses_Students;
-                ''')
 
 def get_student(cur, student_id): # возвращает студента
     cur.execute('''
@@ -110,7 +108,8 @@ with pg.connect(database='yakovtsevdb',
         {'name': 'SecondStud', 'gpa': 6.33, 'birthdate': None},
     ]
     js_students_list = [
-        {'name': '3RD_Stud', 'gpa': 9.99, 'birthdate': '01-12-2000'}
+        {'name': '3RD_Stud', 'gpa': 9.99, 'birthdate': '01-12-2000'},
+        {'name': 'Fourth_Stud', 'gpa': 4.44, 'birthdate': '04-12-1444'},
     ]
     courses_list = [
         {'name': 'AdvancedPY'},
@@ -120,18 +119,15 @@ with pg.connect(database='yakovtsevdb',
 
 
     add_courses(cur, courses_list)
-    add_student(cur, adpy_students_list)
-    add_student(cur, js_students_list)
+    add_students(cur, adpy_students_list, 1)
+    add_students(cur, js_students_list, 2)
 
     get_student(cur, 2)
     get_student(cur, 1)
     get_student(cur, 3)
     print()
     get_courses_list(cur)
-    print()
-    connect_studs_to_courses(cur, 1, 2, 1)
-    connect_studs_to_courses(cur, 2, 1, 2)
-    connect_studs_to_courses(cur, 3, 3, 3)
+    # print()
+
     get_course_students(cur, 1)
     get_course_students(cur, 2)
-    get_course_students(cur, 3)
